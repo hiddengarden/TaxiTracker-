@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-surface text-white;
+    overscroll-behavior: none;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+}
+
+@layer utilities {
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
