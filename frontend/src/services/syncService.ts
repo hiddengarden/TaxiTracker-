@@ -1,5 +1,5 @@
 type Method = 'POST' | 'PUT' | 'DELETE'
-type Entity = 'transaction' | 'shift' | 'dailySheet' | 'invoice'
+type Entity = 'transaction' | 'shift' | 'dailySheet' | 'invoice' | 'settings'
 
 interface SyncJob {
   entity: Entity
@@ -15,9 +15,13 @@ const ENDPOINT_MAP: Record<Entity, string> = {
   shift: '/api/shifts',
   dailySheet: '/api/daily-sheets',
   invoice: '/api/invoices',
+  settings: '/api/settings',
 }
 
 const QUEUE_KEY = 'taxitracker-sync-queue'
+const LAST_SYNC_KEY = 'taxitracker-last-sync'
+
+class ClientError extends Error {}
 
 class SyncService {
   private queue: SyncJob[] = []
@@ -58,8 +62,8 @@ class SyncService {
     for (const job of pending) {
       try {
         await this.execute(job)
-      } catch {
-        if (job.retries < 5) {
+      } catch (err) {
+        if (!(err instanceof ClientError) && job.retries < 5) {
           failed.push({ ...job, retries: job.retries + 1 })
         }
       }
@@ -72,7 +76,10 @@ class SyncService {
 
   private async execute(job: SyncJob): Promise<void> {
     const base = ENDPOINT_MAP[job.entity]
-    const url = job.method === 'PUT' || job.method === 'DELETE' ? `${base}/${job.id}` : base
+    // Settings always PUTs to the base URL without an id suffix
+    const url = job.entity === 'settings'
+      ? base
+      : (job.method === 'PUT' || job.method === 'DELETE' ? `${base}/${job.id}` : base)
 
     const res = await fetch(url, {
       method: job.method,
@@ -80,14 +87,21 @@ class SyncService {
       body: job.method !== 'DELETE' ? JSON.stringify(job.data) : undefined,
     })
 
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    if (!res.ok) {
+      if (res.status >= 400 && res.status < 500) throw new ClientError(`HTTP ${res.status}`)
+      throw new Error(`HTTP ${res.status}`)
+    }
   }
 
   async pullAll(): Promise<unknown> {
     try {
-      const res = await fetch('/api/sync')
+      const lastSync = localStorage.getItem(LAST_SYNC_KEY)
+      const url = lastSync ? `/api/sync?since=${encodeURIComponent(lastSync)}` : '/api/sync'
+      const res = await fetch(url)
       if (!res.ok) return null
-      return await res.json()
+      const data = await res.json() as { serverTime?: string }
+      if (data.serverTime) localStorage.setItem(LAST_SYNC_KEY, data.serverTime)
+      return data
     } catch {
       return null
     }

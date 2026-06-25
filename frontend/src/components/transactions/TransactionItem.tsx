@@ -21,7 +21,7 @@ export function TransactionItem({ txn }: Props) {
   const [editForm, setEditForm] = useState({ charge: String(txn.charge), cashIn: String(txn.cashIn), notes: txn.notes })
   const cur = settings.currency
   const pt = getPaymentType(txn.paymentType)
-  const time = txn.id.split('T')[1]?.slice(0, 5) ?? ''
+  const time = txn.createdAt.split('T')[1]?.slice(0, 5) ?? ''
 
   const handleSave = () => {
     const charge = parseFloat(editForm.charge) || 0

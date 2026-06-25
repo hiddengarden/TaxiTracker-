@@ -1,12 +1,17 @@
 import { useState } from 'react'
 import { Lock, ChevronLeft, ChevronRight } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { getISOWeeksInYear } from 'date-fns'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { useInvoiceStore } from '@/stores/invoiceStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { calcWeeklySummary } from '@/lib/calculations'
 import { currentWeek } from '@/lib/dateUtils'
+
+function weeksInYear(year: number): number {
+  return getISOWeeksInYear(new Date(year, 0, 4))
+}
 
 export function WeeklyInvoice() {
   const { settings } = useSettingsStore()
@@ -26,15 +31,27 @@ export function WeeklyInvoice() {
     setLoading(false)
   }
 
+  function prevWeek({ weekNumber: w, year: y }: { weekNumber: number; year: number }) {
+    return w - 1 < 1
+      ? { weekNumber: weeksInYear(y - 1), year: y - 1 }
+      : { weekNumber: w - 1, year: y }
+  }
+
+  function nextWeek({ weekNumber: w, year: y }: { weekNumber: number; year: number }) {
+    return w + 1 > weeksInYear(y)
+      ? { weekNumber: 1, year: y + 1 }
+      : { weekNumber: w + 1, year: y }
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Week {weekNumber} / {year}</CardTitle>
         <div className="flex items-center gap-1">
-          <button onClick={() => setWeek(({ weekNumber: w, year: y }) => ({ weekNumber: w - 1 < 1 ? 52 : w - 1, year: w - 1 < 1 ? y - 1 : y }))} className="p-1 text-gray-400 hover:text-white">
+          <button onClick={() => setWeek(prevWeek)} className="p-1 text-gray-400 hover:text-white">
             <ChevronLeft size={18} />
           </button>
-          <button onClick={() => setWeek(({ weekNumber: w, year: y }) => ({ weekNumber: w + 1 > 52 ? 1 : w + 1, year: w + 1 > 52 ? y + 1 : y }))} className="p-1 text-gray-400 hover:text-white">
+          <button onClick={() => setWeek(nextWeek)} className="p-1 text-gray-400 hover:text-white">
             <ChevronRight size={18} />
           </button>
         </div>

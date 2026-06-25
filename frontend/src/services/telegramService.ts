@@ -16,7 +16,7 @@ async function send(config: TelegramConfig, text: string): Promise<void> {
 export async function notifyTransaction(config: TelegramConfig, txn: Transaction, currency: string): Promise<void> {
   if (!config.events.includes('transaction')) return
   const text = [
-    `<b>TXN</b> ${txn.shiftDate} ${txn.id.split('T')[1]?.slice(0, 8) ?? ''}`,
+    `<b>TXN</b> ${txn.shiftDate} ${txn.createdAt.split('T')[1]?.slice(0, 8) ?? ''}`,
     `${txn.paymentType} · Meter: ${currency}${txn.meter.toFixed(2)} · Charge: ${currency}${txn.charge.toFixed(2)} · Overring: ${currency}${txn.overring.toFixed(2)}`,
     `Cash In: ${currency}${txn.cashIn.toFixed(2)} · Gratuity: ${currency}${txn.gratuity.toFixed(2)}`,
     txn.notes ? `Notes: ${txn.notes}` : '',

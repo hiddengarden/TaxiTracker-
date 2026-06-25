@@ -62,6 +62,7 @@ export function TransactionForm() {
 
     setLoading(true)
     const id = nowId()
+    const now = new Date().toISOString()
     const txn: Transaction = {
       id,
       shiftDate: activeShiftDate,
@@ -74,8 +75,8 @@ export function TransactionForm() {
       cashIn: cashInVal,
       gratuity,
       notes: form.notes.trim(),
-      createdAt: id,
-      updatedAt: id,
+      createdAt: now,
+      updatedAt: now,
     }
 
     addTransaction(txn)

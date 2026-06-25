@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { DailySheet, FrozenInvoice } from '@/types'
+import type { DailySheet, FrozenInvoice, Settings, Transaction } from '@/types'
 import { syncService } from '@/services/syncService'
+import { calcShiftSummary } from '@/lib/calculations'
 
 interface InvoiceStore {
   dailySheets: DailySheet[]
@@ -10,6 +11,8 @@ interface InvoiceStore {
   getDailySheet: (date: string) => DailySheet | undefined
   getDailySheetsForWeek: (weekNumber: number, year: number) => DailySheet[]
   freezeInvoice: (weekNumber: number, year: number) => FrozenInvoice | null
+  recalculateDailySheet: (date: string, transactions: Transaction[], settings: Settings) => void
+  deleteDailySheet: (date: string) => void
   importData: (sheets: DailySheet[], invoices: FrozenInvoice[]) => void
   clearAll: () => void
 }
@@ -50,7 +53,7 @@ export const useInvoiceStore = create<InvoiceStore>()(
         const version = existingVersions.length + 1
 
         const invoice: FrozenInvoice = {
-          id: `invoice-w${weekNumber}-${year}-v${version}`,
+          id: crypto.randomUUID(),
           weekNumber,
           year,
           version,
@@ -65,6 +68,37 @@ export const useInvoiceStore = create<InvoiceStore>()(
         syncService.push('invoice', invoice, 'POST')
         return invoice
       },
+
+      recalculateDailySheet: (date, transactions, settings) => {
+        const existing = get().dailySheets.find((s) => s.date === date)
+        if (!existing) return
+        const summary = calcShiftSummary(transactions, settings)
+        const updated: DailySheet = {
+          ...existing,
+          cashTotal: summary.cashTotal,
+          cardTotal: summary.cardTotal,
+          accountTotal: summary.accountTotal,
+          chargeTotal: summary.chargeTotal,
+          meterTotal: summary.meterTotal,
+          overringTotal: summary.overringTotal,
+          cardGratuity: summary.cardGratuity,
+          cashGratuity: summary.cashGratuity,
+          driverShare: summary.driverShare,
+          cashEnclosed: summary.cashEnclosed,
+          transactionCount: summary.transactionCount,
+          transactions,
+          updatedAt: new Date().toISOString(),
+        }
+        set((state) => ({
+          dailySheets: state.dailySheets.map((s) => s.date === date ? updated : s),
+        }))
+        syncService.push('dailySheet', updated, 'POST')
+      },
+
+      deleteDailySheet: (date) =>
+        set((state) => ({
+          dailySheets: state.dailySheets.filter((s) => s.date !== date),
+        })),
 
       importData: (sheets, invoices) =>
         set({ dailySheets: sheets, frozenInvoices: invoices }),

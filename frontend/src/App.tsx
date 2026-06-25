@@ -9,12 +9,14 @@ import { syncService } from '@/services/syncService'
 import { useTransactionStore } from '@/stores/transactionStore'
 import { useShiftStore } from '@/stores/shiftStore'
 import { useInvoiceStore } from '@/stores/invoiceStore'
+import { useSettingsStore } from '@/stores/settingsStore'
 import type { SyncPayload } from '@/types'
 
 function useSyncOnMount() {
   const { transactions, importTransactions } = useTransactionStore()
   const { shifts, importShifts } = useShiftStore()
   const { dailySheets, frozenInvoices, importData } = useInvoiceStore()
+  const { settings, importSettings } = useSettingsStore()
 
   useEffect(() => {
     syncService.pullAll().then((payload) => {
@@ -34,6 +36,12 @@ function useSyncOnMount() {
       importTransactions(mergeTxns)
       importShifts(mergeShifts)
       importData(mergeSheets, mergedInvoices)
+
+      if (data.settings) {
+        importSettings(data.settings)
+      } else {
+        syncService.push('settings', settings, 'PUT')
+      }
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

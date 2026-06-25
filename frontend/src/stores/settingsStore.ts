@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Settings } from '@/types'
+import { syncService } from '@/services/syncService'
 
 const DEFAULT_SETTINGS: Settings = {
   driverName: '',
@@ -36,6 +37,7 @@ const DEFAULT_SETTINGS: Settings = {
 interface SettingsStore {
   settings: Settings
   updateSettings: (partial: Partial<Settings>) => void
+  importSettings: (settings: Settings) => void
   resetSettings: () => void
   getField: (id: string) => { label: string; visible: boolean }
   getPaymentType: (id: string) => Settings['paymentTypes'][0] | undefined
@@ -46,8 +48,12 @@ export const useSettingsStore = create<SettingsStore>()(
     (set, get) => ({
       settings: DEFAULT_SETTINGS,
 
-      updateSettings: (partial) =>
-        set((state) => ({ settings: { ...state.settings, ...partial } })),
+      updateSettings: (partial) => {
+        set((state) => ({ settings: { ...state.settings, ...partial } }))
+        syncService.push('settings', get().settings, 'PUT')
+      },
+
+      importSettings: (settings) => set({ settings }),
 
       resetSettings: () => set({ settings: DEFAULT_SETTINGS }),
 

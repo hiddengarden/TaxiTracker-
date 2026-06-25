@@ -1,9 +1,12 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronUp, Download, Car, Clock } from 'lucide-react'
+import { ChevronDown, ChevronUp, Download, Car, Clock, RefreshCw } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { useSettingsStore } from '@/stores/settingsStore'
+import { useTransactionStore } from '@/stores/transactionStore'
+import { useInvoiceStore } from '@/stores/invoiceStore'
 import { exportSheetCSV } from '@/lib/exportUtils'
 import { formatDate } from '@/lib/dateUtils'
 import type { DailySheet } from '@/types'
@@ -15,8 +18,16 @@ interface Props {
 
 export function DailySheetCard({ sheet, defaultExpanded = false }: Props) {
   const { settings, getPaymentType } = useSettingsStore()
+  const { getShiftTransactions } = useTransactionStore()
+  const { recalculateDailySheet } = useInvoiceStore()
   const [expanded, setExpanded] = useState(defaultExpanded)
   const cur = settings.currency
+
+  const handleRecalculate = () => {
+    const txns = getShiftTransactions(sheet.date)
+    recalculateDailySheet(sheet.date, txns, settings)
+    toast.success('Sheet recalculated')
+  }
 
   const rows = [
     { label: 'Cash', value: sheet.cashTotal, color: '#4caf50' },
@@ -56,6 +67,9 @@ export function DailySheetCard({ sheet, defaultExpanded = false }: Props) {
         <Button variant="ghost" size="sm" onClick={() => setExpanded((v) => !v)} className="flex-1 text-gray-400">
           {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           {expanded ? 'Hide' : 'Details'}
+        </Button>
+        <Button variant="ghost" size="sm" onClick={handleRecalculate} title="Recalculate from live transactions">
+          <RefreshCw size={14} />
         </Button>
         <Button variant="secondary" size="sm" onClick={() => exportSheetCSV(sheet, cur)}>
           <Download size={14} /> CSV

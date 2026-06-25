@@ -10,7 +10,7 @@ export function nowTime(): string {
 }
 
 export function nowId(): string {
-  return new Date().toISOString()
+  return crypto.randomUUID()
 }
 
 export function isoWeek(dateStr: string): number {
