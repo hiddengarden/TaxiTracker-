@@ -24,6 +24,10 @@ router.get('/', (_req: Request, res: Response) => {
 
 router.post('/', (req: Request, res: Response) => {
   const inv = req.body
+  if (!inv.id || !inv.weekNumber || !inv.year || !inv.version) {
+    res.status(400).json({ error: 'id, weekNumber, year, and version are required' })
+    return
+  }
   try {
     db.prepare(`
       INSERT INTO frozen_invoices (id, week_number, year, version, frozen_date, total_charge, total_driver_share, sheets, created_at)

@@ -22,6 +22,14 @@ router.get('/', (_req: Request, res: Response) => {
 
 router.post('/', (req: Request, res: Response) => {
   const s = req.body
+  if (!s.date || !s.type || !s.time) {
+    res.status(400).json({ error: 'date, type, and time are required' })
+    return
+  }
+  if (s.type !== 'start' && s.type !== 'end') {
+    res.status(400).json({ error: 'type must be "start" or "end"' })
+    return
+  }
   db.prepare(`
     INSERT OR REPLACE INTO shifts (date, type, time, car, meter_readings, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?)

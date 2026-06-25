@@ -3,21 +3,35 @@ import { db } from '../db'
 
 const router = Router()
 
-router.get('/', (_req: Request, res: Response) => {
-  const transactions = (db.prepare('SELECT * FROM transactions').all() as Record<string, unknown>[]).map(r => ({
+router.get('/', (req: Request, res: Response) => {
+  const since = typeof req.query.since === 'string' ? req.query.since : null
+
+  const txnRows = (since
+    ? db.prepare('SELECT * FROM transactions WHERE updated_at > ?').all(since)
+    : db.prepare('SELECT * FROM transactions').all()) as Record<string, unknown>[]
+
+  const transactions = txnRows.map(r => ({
     id: r.id, shiftDate: r.shift_date, weekNumber: r.week_number, year: r.year,
     paymentType: r.payment_type, meter: r.meter, charge: r.charge, overring: r.overring,
     cashIn: r.cash_in, gratuity: r.gratuity, notes: r.notes,
     createdAt: r.created_at, updatedAt: r.updated_at,
   }))
 
-  const shifts = (db.prepare('SELECT * FROM shifts').all() as Record<string, unknown>[]).map(r => ({
+  const shiftRows = (since
+    ? db.prepare('SELECT * FROM shifts WHERE updated_at > ?').all(since)
+    : db.prepare('SELECT * FROM shifts').all()) as Record<string, unknown>[]
+
+  const shifts = shiftRows.map(r => ({
     date: r.date, type: r.type, time: r.time, car: r.car,
     meterReadings: JSON.parse(r.meter_readings as string),
     createdAt: r.created_at, updatedAt: r.updated_at,
   }))
 
-  const dailySheets = (db.prepare('SELECT * FROM daily_sheets').all() as Record<string, unknown>[]).map(r => ({
+  const sheetRows = (since
+    ? db.prepare('SELECT * FROM daily_sheets WHERE updated_at > ?').all(since)
+    : db.prepare('SELECT * FROM daily_sheets').all()) as Record<string, unknown>[]
+
+  const dailySheets = sheetRows.map(r => ({
     date: r.date, dayName: r.day_name, weekNumber: r.week_number, year: r.year,
     shiftStart: r.shift_start, shiftEnd: r.shift_end, car: r.car,
     meterReadingsStart: JSON.parse(r.meter_readings_start as string),
@@ -30,7 +44,11 @@ router.get('/', (_req: Request, res: Response) => {
     createdAt: r.created_at, updatedAt: r.updated_at,
   }))
 
-  const frozenInvoices = (db.prepare('SELECT * FROM frozen_invoices').all() as Record<string, unknown>[]).map(r => ({
+  const invoiceRows = (since
+    ? db.prepare('SELECT * FROM frozen_invoices WHERE created_at > ?').all(since)
+    : db.prepare('SELECT * FROM frozen_invoices').all()) as Record<string, unknown>[]
+
+  const frozenInvoices = invoiceRows.map(r => ({
     id: r.id, weekNumber: r.week_number, year: r.year, version: r.version,
     frozenDate: r.frozen_date, totalCharge: r.total_charge, totalDriverShare: r.total_driver_share,
     sheets: JSON.parse(r.sheets as string), createdAt: r.created_at,

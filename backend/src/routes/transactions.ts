@@ -21,8 +21,10 @@ function rowToTxn(row: Record<string, unknown>) {
   }
 }
 
-router.get('/', (_req: Request, res: Response) => {
-  const rows = db.prepare('SELECT * FROM transactions ORDER BY created_at DESC').all() as Record<string, unknown>[]
+router.get('/', (req: Request, res: Response) => {
+  const limit = Math.min(parseInt(String(req.query.limit ?? '500'), 10) || 500, 1000)
+  const offset = parseInt(String(req.query.offset ?? '0'), 10) || 0
+  const rows = db.prepare('SELECT * FROM transactions ORDER BY created_at DESC LIMIT ? OFFSET ?').all(limit, offset) as Record<string, unknown>[]
   res.json(rows.map(rowToTxn))
 })
 
@@ -33,6 +35,10 @@ router.get('/shift/:date', (req: Request, res: Response) => {
 
 router.post('/', (req: Request, res: Response) => {
   const t = req.body
+  if (!t.id || !t.shiftDate || !t.paymentType) {
+    res.status(400).json({ error: 'id, shiftDate, and paymentType are required' })
+    return
+  }
   db.prepare(`
     INSERT OR REPLACE INTO transactions
     (id, shift_date, week_number, year, payment_type, meter, charge, overring, cash_in, gratuity, notes, created_at, updated_at)
@@ -43,6 +49,10 @@ router.post('/', (req: Request, res: Response) => {
 
 router.put('/:id', (req: Request, res: Response) => {
   const t = req.body
+  if (!t.paymentType) {
+    res.status(400).json({ error: 'paymentType is required' })
+    return
+  }
   const now = new Date().toISOString()
   db.prepare(`
     UPDATE transactions SET

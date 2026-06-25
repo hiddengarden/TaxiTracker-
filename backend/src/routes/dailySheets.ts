@@ -38,6 +38,10 @@ router.get('/', (_req: Request, res: Response) => {
 
 router.post('/', (req: Request, res: Response) => {
   const s = req.body
+  if (!s.date || !s.dayName) {
+    res.status(400).json({ error: 'date and dayName are required' })
+    return
+  }
   db.prepare(`
     INSERT OR REPLACE INTO daily_sheets
     (date, day_name, week_number, year, shift_start, shift_end, car,
